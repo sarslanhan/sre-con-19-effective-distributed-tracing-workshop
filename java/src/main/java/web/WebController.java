@@ -130,8 +130,6 @@ public class WebController {
                     Boolean.class);
 
             if (cartResponse.getStatusCode().isError()) {
-                Tags.ERROR.set(cartApiCallSpan, true);
-                Tags.HTTP_STATUS.set(cartApiCallSpan, cartResponse.getStatusCode().value());
                 cartApiCallSpan.finish();
 
                 model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_NOT_ADDED);
