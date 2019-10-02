@@ -123,7 +123,6 @@ func (w *website) addToCart(sku string, parent opentracing.Span) error {
 		return err
 	}
 	defer res.Body.Close()
-	ext.HTTPStatusCode.Set(span, uint16(res.StatusCode))
 
 	if res.StatusCode >= http.StatusBadRequest {
 		buf, _ := ioutil.ReadAll(res.Body)
