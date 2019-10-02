@@ -78,103 +78,49 @@ public class WebController {
     @RequestMapping(value = "/buy", method = RequestMethod.POST)
     public String buyItems(@RequestParam(value = "sku") String sku, ModelMap model, HttpServletRequest request) {
 
-        final Map<String, String> requestHeaders = Collections.list(request.getHeaderNames())
-                .stream()
-                .collect(Collectors.toMap(h -> h, request::getHeader));
-
-        final SpanContext spanContext = tracer.extract(HTTP_HEADERS, new TextMapAdapter(requestHeaders));
-
-        final Span span;
-        if (spanContext != null) {
-            span = tracer.buildSpan(OPERATION_NAME).asChildOf(spanContext).start();
-        } else {
-            span = tracer.buildSpan(OPERATION_NAME).start();
-        }
-
-        try {
-            Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
-            Tags.HTTP_URL.set(span, request.getRequestURL().toString());
-            span.setTag(TracingTags.INSTANCE_ID_TAG, instanceId);
-
-            if (sku.isEmpty()) {
-                model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, MISSING_SKU);
-                span.log(MISSING_SKU);
-                Tags.ERROR.set(span, true);
-                return "buy";
-            }
-
-            complexBusinessLogic(span);
-
-            boolean success = storeRecordsInRemoteStorage(span);
-            if (!success) {
-                model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, REMOTE_STORAGE_FAILURE);
-                span.log(REMOTE_STORAGE_FAILURE);
-                Tags.ERROR.set(span, true);
-                return "buy";
-            }
-
-            model.addAttribute(MODEL_ATTRIBUTE_SKU, sku);
-
-            Span cartApiCallSpan = tracer.buildSpan(ADD_TO_CART_OPERATION_NAME).asChildOf(span).start();
-            Tags.SPAN_KIND.set(cartApiCallSpan, Tags.SPAN_KIND_CLIENT);
-
-            Map<String, String> map = new HashMap<>();
-            tracer.inject(cartApiCallSpan.context(), HTTP_HEADERS, new TextMapAdapter(map));
-            HttpHeaders headers = new HttpHeaders();
-            headers.setAll(map);
-
-            String url = cartEndpoint + sku;
-            ResponseEntity<Boolean> cartResponse = restTemplate.exchange(url,
-                    HttpMethod.POST,
-                    new HttpEntity(headers),
-                    Boolean.class);
-
-            if (cartResponse.getStatusCode().isError()) {
-                cartApiCallSpan.finish();
-
-                model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_NOT_ADDED);
-                span.log(CART_API_ERROR);
-                Tags.ERROR.set(span, true);
-                return "buy";
-            }
-            cartApiCallSpan.finish();
-
-            if (cartResponse.getBody()) {
-                model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_ADDED);
-            } else {
-                model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_NOT_ADDED);
-                Tags.ERROR.set(span, true);
-                span.log(ITEM_NOT_ADDED);
-            }
+        if (sku.isEmpty()) {
+            model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, MISSING_SKU);
             return "buy";
         }
-        finally {
-            span.finish();
+
+        complexBusinessLogic();
+
+        boolean success = storeRecordsInRemoteStorage();
+        if (!success) {
+            model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, REMOTE_STORAGE_FAILURE);
+            return "buy";
         }
+
+        model.addAttribute(MODEL_ATTRIBUTE_SKU, sku);
+
+        String url = cartEndpoint + sku;
+        ResponseEntity<Boolean> cartResponse = restTemplate.exchange(url,
+                HttpMethod.POST,
+                null,
+                Boolean.class);
+
+        if (cartResponse.getStatusCode().isError()) {
+            model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_NOT_ADDED);
+            return "buy";
+        }
+
+        if (cartResponse.getBody()) {
+            model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_ADDED);
+        } else {
+            model.addAttribute(MODEL_ATTRIBUTE_MESSAGE, ITEM_NOT_ADDED);
+        }
+        return "buy";
     }
     
-    private void complexBusinessLogic(final Span parentSpan) {
-
-        Span businessLogicSpan = tracer.buildSpan(BUSINESS_LOGIC_OPERATION_NAME).asChildOf(parentSpan).start();
+    private void complexBusinessLogic() {
         try {
             faultInjectionManager.sleepForAWhile(COMPONENT_NAME);
         } catch (InterruptedException e) {
             LOG.debug("We got a weird exception: {}", e.getMessage());
-        } finally {
-            businessLogicSpan.finish();
         }
     }
 
-    private boolean storeRecordsInRemoteStorage(final Span parentSpan) {
-        Span storageAccessLogicSpan = tracer.buildSpan(RECORD_STORAGE_OPERATION_NAME).asChildOf(parentSpan).start();
-        Tags.SPAN_KIND.set(storageAccessLogicSpan, Tags.SPAN_KIND_CLIENT);
-        boolean success = !faultInjectionManager.maybeFailTheOperation(COMPONENT_NAME);
-        if (!success) {
-            Tags.ERROR.set(storageAccessLogicSpan, true);
-            storageAccessLogicSpan.log(REMOTE_STORAGE_FAILURE);
-        }
-        storageAccessLogicSpan.finish();
-
-        return success;
+    private boolean storeRecordsInRemoteStorage() {
+        return !faultInjectionManager.maybeFailTheOperation(COMPONENT_NAME);
     }
 }
