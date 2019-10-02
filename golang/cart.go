@@ -102,29 +102,21 @@ func (api *cartAPI) checkStock(sku string, parent opentracing.Span) (bool, error
 
 	resp, err := http.DefaultClient.Do(httpReq) // check stock
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogKV("message", err)
 		return false, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		buf, _ := ioutil.ReadAll(resp.Body)
-		ext.Error.Set(span, true)
 		message := string(buf)
-		span.LogKV("message", message)
 		return false, errors.New(message)
 	}
 	var stock map[string]int
 	if err := json.NewDecoder(resp.Body).Decode(&stock); err != nil {
-		ext.Error.Set(span, true)
-		span.LogKV("message", err)
 		return false, err
 	}
 
 	if qty, has := stock[sku]; !has || qty < 1 {
-		ext.Error.Set(span, true)
-		span.LogKV("message", "not enough stock")
 		return false, nil
 	}
 
