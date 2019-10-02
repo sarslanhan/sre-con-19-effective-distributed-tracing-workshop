@@ -76,7 +76,7 @@ func (api *cartAPI) addToCart(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "we were not able to process your request"})
 		return
 	}
-	isInStock, err := api.checkStock(sku, span)
+	isInStock, err := api.checkStock(sku)
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogKV("message", err)
@@ -92,11 +92,7 @@ func (api *cartAPI) addToCart(c *gin.Context) {
 	c.JSON(http.StatusAccepted, gin.H{"success": true})
 }
 
-func (api *cartAPI) checkStock(sku string, parent opentracing.Span) (bool, error) {
-	span := api.tracer.StartSpan(checkStockOperation, opentracing.ChildOf(parent.Context()))
-	ext.SpanKindRPCClient.Set(span)
-	defer span.Finish()
-
+func (api *cartAPI) checkStock(sku string) (bool, error) {
 	url := fmt.Sprintf(stockAPIEndpoint, sku)
 	httpReq, _ := http.NewRequest(http.MethodGet, url, nil)
 
