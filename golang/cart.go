@@ -108,8 +108,6 @@ func (api *cartAPI) checkStock(sku string, parent opentracing.Span) (bool, error
 	}
 	defer resp.Body.Close()
 
-	ext.HTTPStatusCode.Set(span, uint16(resp.StatusCode))
-
 	if resp.StatusCode >= http.StatusBadRequest {
 		buf, _ := ioutil.ReadAll(resp.Body)
 		ext.Error.Set(span, true)
