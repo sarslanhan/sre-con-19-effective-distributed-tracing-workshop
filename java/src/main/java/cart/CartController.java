@@ -91,7 +91,6 @@ public class CartController {
 
         try {
             Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
-            span.setTag(TracingTags.AZ_TAG, az);
             span.setTag(TracingTags.INSTANCE_ID_TAG, instanceId);
             Tags.HTTP_URL.set(span, request.getRequestURL().toString());
             span.log(ImmutableMap.of("sku", sku));

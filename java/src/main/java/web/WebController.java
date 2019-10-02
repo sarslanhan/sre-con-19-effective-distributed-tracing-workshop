@@ -94,7 +94,6 @@ public class WebController {
         try {
             Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
             Tags.HTTP_URL.set(span, request.getRequestURL().toString());
-            span.setTag(TracingTags.AZ_TAG, az);
             span.setTag(TracingTags.INSTANCE_ID_TAG, instanceId);
 
             if (sku.isEmpty()) {
