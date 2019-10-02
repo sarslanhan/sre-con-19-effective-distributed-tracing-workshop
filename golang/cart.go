@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	opentracing "github.com/opentracing/opentracing-go"
 )
 
 const (
@@ -17,7 +16,6 @@ const (
 )
 
 type cartAPI struct {
-	tracer       opentracing.Tracer
 	engine       *gin.Engine
 	faultManager *FaultInjectionManager
 	az           int
@@ -29,7 +27,6 @@ func newCartAPI(faultManager *FaultInjectionManager, instanceID string, az int) 
 	engine.Use(gin.Logger(), gin.Recovery())
 	api := &cartAPI{
 		engine:       engine,
-		tracer:       setupTracer(cartAppName),
 		faultManager: faultManager,
 		az:           az,
 		instanceID:   instanceID,
