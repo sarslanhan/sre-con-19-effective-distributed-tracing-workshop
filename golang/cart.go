@@ -67,9 +67,9 @@ func (api *cartAPI) addToCart(c *gin.Context) {
 		return
 	}
 
-	api.complexBusinessLogic(span)
+	api.complexBusinessLogic()
 
-	err = api.storeRecordsInRemoteStorage(span)
+	err = api.storeRecordsInRemoteStorage()
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogKV("message", fmt.Sprintf("%v", err))
@@ -123,18 +123,11 @@ func (api *cartAPI) checkStock(sku string, parent opentracing.Span) (bool, error
 	return true, nil
 }
 
-func (api *cartAPI) complexBusinessLogic(parent opentracing.Span) {
-	span := api.tracer.StartSpan(doComplexBusinessLogicOperation, opentracing.ChildOf(parent.Context()))
-	defer span.Finish()
-
+func (api *cartAPI) complexBusinessLogic() {
 	api.faultManager.sleepForAWhile(cartAppName)
 }
 
-func (api *cartAPI) storeRecordsInRemoteStorage(parent opentracing.Span) error {
-	span := api.tracer.StartSpan(storeRecordsOperation, opentracing.ChildOf(parent.Context()))
-	ext.SpanKindRPCClient.Set(span)
-	defer span.Finish()
-
+func (api *cartAPI) storeRecordsInRemoteStorage() error {
 	return api.faultManager.maybeFailTheOperation(cartAppName)
 }
 
