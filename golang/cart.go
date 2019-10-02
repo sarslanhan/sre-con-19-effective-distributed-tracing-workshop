@@ -99,13 +99,6 @@ func (api *cartAPI) checkStock(sku string, parent opentracing.Span) (bool, error
 
 	url := fmt.Sprintf(stockAPIEndpoint, sku)
 	httpReq, _ := http.NewRequest(http.MethodGet, url, nil)
-	err := api.tracer.Inject(
-		span.Context(),
-		opentracing.HTTPHeaders,
-		opentracing.HTTPHeadersCarrier(httpReq.Header))
-	if err != nil {
-		api.log(fmt.Sprintf("could't inject context, continuing without : %v", err))
-	}
 
 	resp, err := http.DefaultClient.Do(httpReq) // check stock
 	if err != nil {
