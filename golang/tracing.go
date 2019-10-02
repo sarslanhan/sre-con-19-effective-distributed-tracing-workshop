@@ -13,14 +13,6 @@ import (
 
 const (
 	collectorEndpoint = "http://sre-con-jaeger.sre.zalan.do:14268/api/traces?format=jaeger.thrift"
-
-	doComplexBusinessLogicOperation = "do_complex_business_logic"
-	storeRecordsOperation           = "store_records"
-	addToCartOperation              = "add_to_cart"
-	checkStockOperation             = "check_stock"
-	buyStuffOperation               = "buy_stuff"
-
-	instanceIDTag = "instance_id"
 )
 
 func setupTracer(serviceName string) opentracing.Tracer {
