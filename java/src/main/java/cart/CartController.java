@@ -121,21 +121,14 @@ public class CartController {
         Span stockApiCallSpan = tracer.buildSpan(CHECK_STOCK_OPERATION_NAME).asChildOf(parentSpan).start();
         Tags.SPAN_KIND.set(stockApiCallSpan, Tags.SPAN_KIND_CLIENT);
 
-        Map<String, String> map = new HashMap<>();
-        tracer.inject(stockApiCallSpan.context(), HTTP_HEADERS, new TextMapAdapter(map));
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAll(map);
-
         String url = stockApiEndpoint + sku;
         ResponseEntity<JsonNode> stockResponse = restTemplate.exchange(url,
                 HttpMethod.GET,
-                new HttpEntity(headers),
+                null,
                 JsonNode.class);
         Thread.sleep(50);
 
         if (stockResponse.getStatusCode().isError()) {
-            Tags.ERROR.set(stockApiCallSpan, true);
-            Tags.HTTP_STATUS.set(stockApiCallSpan, stockResponse.getStatusCode().value());
             stockApiCallSpan.finish();
 
             parentSpan.log(STOCK_API_ERROR);
