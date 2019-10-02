@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Super Site</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="magic.js"></script>
+  </head>
+  <body>
+    <div class="col-sm-6 col-sm-offset-3">
+      <h1>Cart</h1>
+      <form action="buyStuff" method="POST">
+        <div id="sku-group" class="form-group">
+          <label for="sku">SKU</label>
+          <input type="text" class="form-control" name="sku" placeholder="XYZ">
+          <!-- errors will go here -->
+        </div>
+        <button type="submit" class="btn btn-success">Buy!<span class="fa fa-arrow-right"></span></button>
+      </form>
+    </div>
+  </body>
+</html>

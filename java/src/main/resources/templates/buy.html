@@ -1,0 +1,22 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Super Cart</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" />
+</head>
+<body>
+<div class="col-sm-6 col-sm-offset-3">
+    <h1>Cart</h1>
+    <form action="buy" method="POST">
+        <div>
+            <label>SKU:</label>
+            <input type="text" class="form-control" name="sku" placeholder="XYZ" th:value="${sku}"/>
+
+            <p th:if="${message.contains('item')}" style="color:blue;" th:text="${message}"/>
+            <p th:if="${message.contains('sku')}" style="color:red;" th:text="${message}"/>
+
+        </div>
+        <button class="btn btn-success">Buy!</button>
+    </form>
+</div>
+</body>
+</html>
