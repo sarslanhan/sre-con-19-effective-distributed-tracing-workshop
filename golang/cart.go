@@ -62,7 +62,7 @@ func (api *cartAPI) addToCart(c *gin.Context) {
 
 	if len(sku) == 0 {
 		span.SetTag("error", true)
-		span.LogKV("message", "missing sku")
+		span.LogFields(log.String("message", "missing sku"))
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing sku"})
 		return
 	}
@@ -72,14 +72,14 @@ func (api *cartAPI) addToCart(c *gin.Context) {
 	err = api.storeRecordsInRemoteStorage(span)
 	if err != nil {
 		ext.Error.Set(span, true)
-		span.LogKV("message", fmt.Sprintf("%v", err))
+		span.LogFields(log.Error(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "we were not able to process your request"})
 		return
 	}
 	isInStock, err := api.checkStock(sku, span)
 	if err != nil {
 		ext.Error.Set(span, true)
-		span.LogKV("message", err)
+		span.LogFields(log.Error(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
