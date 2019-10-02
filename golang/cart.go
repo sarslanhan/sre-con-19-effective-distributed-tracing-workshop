@@ -9,8 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
 )
 
 const (
@@ -47,39 +45,20 @@ func (api *cartAPI) Run(addr ...string) error {
 func (api *cartAPI) addToCart(c *gin.Context) {
 	sku := c.Param("sku")
 
-	req := c.Request
-	ctx, err := api.tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
-	var span opentracing.Span
-	if err != nil {
-		span = api.tracer.StartSpan(addToCartOperation)
-	} else {
-		span = api.tracer.StartSpan(addToCartOperation, opentracing.ChildOf(ctx))
-	}
-	defer span.Finish()
-	ext.SpanKindRPCServer.Set(span)
-	span.SetTag(instanceIDTag, api.instanceID)
-	span.LogFields(log.String("sku", sku))
-
 	if len(sku) == 0 {
-		span.SetTag("error", true)
-		span.LogKV("message", "missing sku")
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing sku"})
 		return
 	}
 
 	api.complexBusinessLogic()
 
-	err = api.storeRecordsInRemoteStorage()
+	err := api.storeRecordsInRemoteStorage()
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogKV("message", fmt.Sprintf("%v", err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "we were not able to process your request"})
 		return
 	}
 	isInStock, err := api.checkStock(sku)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogKV("message", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
