@@ -103,8 +103,6 @@ func (w *website) addToCart(sku string, parent opentracing.Span) error {
 	url := fmt.Sprintf("http://localhost:8085/cart/%s", sku)
 	req, err := http.NewRequest(http.MethodPut, url, nil)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(log.Error(err))
 		return err
 	}
 
@@ -118,17 +116,13 @@ func (w *website) addToCart(sku string, parent opentracing.Span) error {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogFields(log.Error(err))
 		return err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode >= http.StatusBadRequest {
 		buf, _ := ioutil.ReadAll(res.Body)
-		ext.Error.Set(span, true)
 		msg := string(buf)
-		span.LogFields(log.String("message", msg))
 		return errors.New(msg)
 	}
 
