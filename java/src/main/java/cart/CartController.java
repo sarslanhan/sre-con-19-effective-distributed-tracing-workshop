@@ -76,51 +76,23 @@ public class CartController {
     @ResponseBody
     public Boolean addToCart(@PathVariable(value = "sku") String sku, ModelMap model, HttpServletRequest request) throws InterruptedException {
 
-         Map<String, String> requestHeaders = Collections.list(request.getHeaderNames())
-                .stream()
-                .collect(Collectors.toMap(h -> h, request::getHeader));
+         complexBusinessLogic();
 
-        final SpanContext spanContext = tracer.extract(Format.Builtin.HTTP_HEADERS, new TextMapAdapter(requestHeaders));
+         boolean success = storeRecordsInRemoteStorage();
+         if (!success) {
+             return false;
+         }
 
-        final Span span;
-        if (spanContext != null) {
-            span = tracer.buildSpan(OPERATION_NAME).asChildOf(spanContext).start();
-        } else {
-            span = tracer.buildSpan(OPERATION_NAME).start();
-        }
-
-        try {
-            Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
-            span.setTag(TracingTags.INSTANCE_ID_TAG, instanceId);
-            Tags.HTTP_URL.set(span, request.getRequestURL().toString());
-            span.log(ImmutableMap.of("sku", sku));
-
-            complexBusinessLogic(span);
-
-            boolean success = storeRecordsInRemoteStorage(span);
-            if (!success) {
-                Tags.ERROR.set(span, true);
-                return false;
-            }
-
-            boolean hasStock = checkStock(sku, span);
-            if (!hasStock) {
-                Tags.ERROR.set(span, true);
-                return false;
-            } else {
-                return true;
-            }
+         boolean hasStock = checkStock(sku);
+         if (!hasStock) {
+             return false;
+         } else {
+             return true;
+         }
             
-        }
-        finally {
-            span.finish();
-        }
     }
     
-    private boolean checkStock(final String sku, final Span parentSpan) throws InterruptedException {
-        Span stockApiCallSpan = tracer.buildSpan(CHECK_STOCK_OPERATION_NAME).asChildOf(parentSpan).start();
-        Tags.SPAN_KIND.set(stockApiCallSpan, Tags.SPAN_KIND_CLIENT);
-
+    private boolean checkStock(final String sku) throws InterruptedException {
         String url = stockApiEndpoint + sku;
         ResponseEntity<JsonNode> stockResponse = restTemplate.exchange(url,
                 HttpMethod.GET,
@@ -129,46 +101,27 @@ public class CartController {
         Thread.sleep(50);
 
         if (stockResponse.getStatusCode().isError()) {
-            stockApiCallSpan.finish();
-
-            parentSpan.log(STOCK_API_ERROR);
-            Tags.ERROR.set(parentSpan, true);
             return false;
         }
-        stockApiCallSpan.finish();
 
         JsonNode jsonResponse = stockResponse.getBody();
         if (!jsonResponse.has(sku) || jsonResponse.get(sku).asInt() < 1) {
-            Tags.ERROR.set(parentSpan, true);
-            parentSpan.log(SKU_OUT_OF_STOCK);
             return false;
         } else {
             return true;
         }
     }
 
-    private void complexBusinessLogic(final Span parentSpan) {
+    private void complexBusinessLogic() {
 
-        Span businessLogicSpan = tracer.buildSpan(BUSINESS_LOGIC_OPERATION_NAME).asChildOf(parentSpan).start();
         try {
             faultInjectionManager.sleepForAWhile(COMPONENT_NAME);
         } catch (InterruptedException e) {
             LOG.debug("We got a weird exception: {}", e.getMessage());
-        } finally {
-            businessLogicSpan.finish();
         }
     }
 
-    private boolean storeRecordsInRemoteStorage(final Span parentSpan) {
-        Span storageAccessLogicSpan = tracer.buildSpan(RECORD_STORAGE_OPERATION_NAME).asChildOf(parentSpan).start();
-        Tags.SPAN_KIND.set(storageAccessLogicSpan, Tags.SPAN_KIND_CLIENT);
-        boolean success = !faultInjectionManager.maybeFailTheOperation(COMPONENT_NAME);
-        if (!success) {
-            Tags.ERROR.set(storageAccessLogicSpan, true);
-            storageAccessLogicSpan.log(REMOTE_STORAGE_FAILURE);
-        }
-        storageAccessLogicSpan.finish();
-        
-        return success;
+    private boolean storeRecordsInRemoteStorage() {
+        return !faultInjectionManager.maybeFailTheOperation(COMPONENT_NAME);
     }
 }
