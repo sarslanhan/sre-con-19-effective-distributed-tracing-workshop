@@ -66,7 +66,6 @@ func (w *website) buyStuff(c *gin.Context) {
 	}
 	defer span.Finish()
 	ext.SpanKindRPCServer.Set(span)
-	span.SetTag(availabilityZoneTag, w.az)
 	span.SetTag(instanceIDTag, w.instanceID)
 
 	if len(sku) < 1 {

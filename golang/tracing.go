@@ -20,8 +20,7 @@ const (
 	checkStockOperation             = "check_stock"
 	buyStuffOperation               = "buy_stuff"
 
-	availabilityZoneTag = "az"
-	instanceIDTag       = "instance_id"
+	instanceIDTag = "instance_id"
 )
 
 func setupTracer(serviceName string) opentracing.Tracer {

@@ -57,7 +57,6 @@ func (api *cartAPI) addToCart(c *gin.Context) {
 	}
 	defer span.Finish()
 	ext.SpanKindRPCServer.Set(span)
-	span.SetTag(availabilityZoneTag, api.az)
 	span.SetTag(instanceIDTag, api.instanceID)
 	span.LogFields(log.String("sku", sku))
 
